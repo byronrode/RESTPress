@@ -3,7 +3,7 @@
  * Plugin Name: RESTPress
  * Plugin URI: http://apphaus.io/open/labs/restpress
  * Description: RESTPress is a plugin that enables a RESTFul API running on your WordPress powered website. It provides a full extendable format driven, RESTful approach, utilizing the power of the Core WordPress publishing engine and it's facilities, such as the Media Library etc.
- * Version: 1.0.0
+ * Version: 0.0.1a
  * Author: Byron Rode
  * Author URI: http://www.byronrode.com
  * Requires at least: 3.5
@@ -164,8 +164,15 @@ if ( ! class_exists( 'RESTPress' ) ) {
 								)
 							);
 						break;
-						case 'xml':
-							echo $this->xml_encode(array($wp_query->query['rp_base'] => $wp_query->query));
+					}
+				}
+				
+				// DELETE?
+				if($_SERVER['REQUEST_METHOD'] === 'DELETE'){
+					switch($api_format){
+						case 'json':
+						default: 
+							$this->delete_api_query($wp_query->query['rp_base'], $wp_query->query['rp_item']);
 						break;
 					}
 				}
@@ -175,6 +182,31 @@ if ( ! class_exists( 'RESTPress' ) ) {
 				
 			}
 			
+		}
+		
+		public function delete_api_query()
+		{
+			global $wp_query;
+			// Method Checking
+			if(!in_array($wp_query->query['rp_base'], $this->api_methods)){
+				$this->return_error('No API method "'.$wp_query->query['rp_base'].'" exists.');
+			}
+			
+			// Item Checking
+			// Do a lookup on the API, if it doesn't 
+			if($this->get_api_query($wp_query->query['rp_base'], $wp_query)){
+				
+				if(wp_delete_post($wp_query->query['rp_item'])){
+					$api_format = $this->get_api_format();
+					switch($api_format){
+						case 'json':
+						default: 
+							echo json_encode(array('success' => 'Successfully deleted a post with ID "'.$wp_query->query['rp_item'].'"'));
+						break;
+					}
+				}
+				
+			}
 		}
 		
 		public function get_api_query($base_method, $wp_query)
