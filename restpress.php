@@ -157,12 +157,9 @@ if ( ! class_exists( 'RESTPress' ) ) {
 					switch($api_format){
 						case 'json':
 						default: 
-							echo json_encode(
-								array(
-									$wp_query->query['rp_base'] => $this->get_api_query($wp_query->query['rp_base'], $wp_query),
-									'api_query' => $wp_query->query
-								)
-							);
+						$data = file_get_contents('php://input');
+						$json = json_decode($data, true);
+						var_dump($json);
 						break;
 					}
 				}
