@@ -106,9 +106,6 @@ if ( ! class_exists( 'RESTPress' ) ) {
 			
 			global $wp_query;
 			
-			global $wp_rewrite;
-		    $wp_rewrite->flush_rules();
-			
 			if(!empty($wp_query->query['pagename']) && $wp_query->query['pagename'] === 'api'){
 				
 				$headers = $this->set_headers();
@@ -130,26 +127,92 @@ if ( ! class_exists( 'RESTPress' ) ) {
 				if($wp_query->query['rp_base'] == ''){
 					$this->return_error('No API method has been defined.');
 				}
-
-				switch($api_format){
-					case 'json':
-					default: 
-						echo json_encode(
-							array(
-								$wp_query->query['rp_base'] => array(),
-								'api_query' => $wp_query->query
-							)
-						);
-					break;
-					case 'xml':
-						echo $this->xml_encode(array($wp_query->query['rp_base'] => $wp_query->query));
-					break;
+				
+				// Method Checking
+				if(!in_array($wp_query->query['rp_base'], $this->api_methods)){
+					$this->return_error('No API method "'.$wp_query->query['rp_base'].'" exists.');
 				}
-
+				
+				// Check for HTTP Request Method
+				// GET?
+				if($_SERVER['REQUEST_METHOD'] === 'GET'){
+					switch($api_format){
+						case 'json':
+						default: 
+							echo json_encode(
+								array(
+									$wp_query->query['rp_base'] => $this->get_api_query($wp_query->query['rp_base'], $wp_query),
+									'api_query' => $wp_query->query
+								)
+							);
+						break;
+						case 'xml':
+							echo $this->xml_encode(array($wp_query->query['rp_base'] => $wp_query->query));
+						break;
+					}
+				}
+				
+				// POST?
+				if($_SERVER['REQUEST_METHOD'] === 'POST'){
+					switch($api_format){
+						case 'json':
+						default: 
+							echo json_encode(
+								array(
+									$wp_query->query['rp_base'] => $this->get_api_query($wp_query->query['rp_base'], $wp_query),
+									'api_query' => $wp_query->query
+								)
+							);
+						break;
+						case 'xml':
+							echo $this->xml_encode(array($wp_query->query['rp_base'] => $wp_query->query));
+						break;
+					}
+				}
+				
+				// Kill the script to ensure no unneccessary WP fluff is sent afterwards.
 				exit;
 				
 			}
 			
+		}
+		
+		public function get_api_query($base_method, $wp_query)
+		{
+			$api_query_results = array();
+			
+			// For sake of the plugin working for the talk, this is hard-coded in here, but in a future version this
+			// will be modified.
+			
+			switch($base_method){
+				case 'users':
+					if(empty($wp_query->query['rp_item'])){
+						$api_query_results = get_users();
+					}else{
+						$item = $wp_query->query['rp_item'];
+						$api_query_results = get_users(array('include'=>array($item)));
+
+						// Check for existance and return an error on no results.
+						if(empty($api_query_results))
+							$this->return_error('No "'.$wp_query->query['rp_base'].'" with the ID "'. $item .'" exists.');
+					}
+				break;
+				
+				case 'posts':
+					if(empty($wp_query->query['rp_item'])){
+						$api_query_results = get_posts();
+					}else{
+						$item = $wp_query->query['rp_item'];
+						$api_query_results = get_posts(array('include'=>array($item)));
+
+						// Check for existance and return an error on no results.
+						if(empty($api_query_results))
+							$this->return_error('No "'.$wp_query->query['rp_base'].'" with the ID "'. $item .'" exists.');
+					}
+				break;
+			}
+			
+			return $api_query_results;
 		}
 		
 		public function set_headers()
