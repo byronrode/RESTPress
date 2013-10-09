@@ -159,7 +159,9 @@ if ( ! class_exists( 'RESTPress' ) ) {
 						default: 
 						$data = file_get_contents('php://input');
 						$json = json_decode($data, true);
-						var_dump($json);
+						if($json){
+							wp_insert_post(array('post_title' => $json['title'], 'post_content' => $json['post_body']))
+						}
 						break;
 					}
 				}
